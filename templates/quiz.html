@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ topic.title }} - NexusAcademy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="quiz-body"
+      data-questions='{{ topic.questions | tojson }}'
+      data-subject="{{ subject }}"
+      data-level="{{ topic.level }}"
+      data-hearts="{{ hearts }}">
+
+    <!-- Yuqori progress va jonlar paneli -->
+    <div class="quiz-header">
+        <a href="/dashboard.html" class="close-quiz">✕</a>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+        </div>
+        <div class="quiz-hearts">❤️ <span id="hearts-count">{{ hearts }}</span></div>
+    </div>
+
+    <!-- Savol oynasi -->
+    <div class="quiz-container" id="quiz-box">
+        <span class="topic-badge">{{ subject_name }} • {{ topic.title }}</span>
+        <h2 class="question-text" id="question-text">Savol yuklanmoqda...</h2>
+
+        <div class="options-grid" id="options-container"></div>
+
+        <div class="feedback-banner hidden" id="feedback-banner">
+            <span id="feedback-msg"></span>
+        </div>
+
+        <button class="duo-btn green-btn" id="action-btn" onclick="handleAction()" disabled>TEKSHIRISH</button>
+    </div>
+
+    <!-- Yakuniy natija oynasi -->
+    <div class="quiz-container hidden" id="result-box" style="text-align: center;">
+        <div style="font-size: 65px; margin-bottom: 15px;" id="result-icon">🏆</div>
+        <h2 id="result-title" style="margin-bottom: 10px;">Mavzu yakunlandi!</h2>
+        <p id="result-desc" style="color: #64748b; margin-bottom: 25px;"></p>
+        <button class="duo-btn green-btn" onclick="window.location.href='/dashboard'">DAVOM ETISH</button>
+    </div>
+
+    <script>
+        const bodyEl = document.body;
+        const questions = JSON.parse(bodyEl.dataset.questions);
+        const subject = bodyEl.dataset.subject;
+        const level = Number(bodyEl.dataset.level);
+        
+        let currentIdx = 0;
+        let selectedOption = null;
+        let isChecked = false;
+        let hearts = Number(bodyEl.dataset.hearts);
+        let correctCount = 0;
+
+        function loadQuestion() {
+            const q = questions[currentIdx];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('progress-bar').style.width = ((currentIdx / questions.length) * 100) + '%';
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            selectedOption = null;
+            isChecked = false;
+
+            document.getElementById('feedback-banner').className = 'feedback-banner hidden';
+            const btn = document.getElementById('action-btn');
+            btn.innerText = 'TEKSHIRISH';
+            btn.disabled = true;
+
+            q.options.forEach((opt, idx) => {
+                const div = document.createElement('div');
+                div.className = 'option-card';
+                div.innerText = opt;
+                div.onclick = () => selectOption(idx, div);
+                container.appendChild(div);
+            });
+        }
+
+        function selectOption(idx, el) {
+            if (isChecked) return;
+            selectedOption = idx;
+            document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('action-btn').disabled = false;
+        }
+
+        function handleAction() {
+            if (!isChecked) {
+                isChecked = true;
+                const correctIdx = questions[currentIdx].answer;
+                const cards = document.querySelectorAll('.option-card');
+                const banner = document.getElementById('feedback-banner');
+
+                if (selectedOption === correctIdx) {
+                    cards[selectedOption].classList.add('correct');
+                    banner.className = 'feedback-banner success';
+                    document.getElementById('feedback-msg').innerText = "✅ Barakalla! To'g'ri javob (+10 XP)";
+                    correctCount++;
+                } else {
+                    cards[selectedOption].classList.add('wrong');
+                    cards[correctIdx].classList.add('correct');
+                    hearts--;
+                    document.getElementById('hearts-count').innerText = Math.max(0, hearts);
+                    banner.className = 'feedback-banner error';
+                    document.getElementById('feedback-msg').innerText = "❌ Xato! To'g'ri javob yashil bilan belgilandi.";
+                }
+
+                document.getElementById('action-btn').innerText = (currentIdx + 1 < questions.length && hearts > 0) ? 'KEYINGI SAVOL' : 'NATIJANI KO‘RISH';
+            } else {
+                currentIdx++;
+                if (currentIdx < questions.length && hearts > 0) {
+                    loadQuestion();
+                } else {
+                    finishQuiz();
+                }
+            }
+        }
+
+        function finishQuiz() {
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('quiz-box').classList.add('hidden');
+            document.getElementById('result-box').classList.remove('hidden');
+
+            const passed = hearts > 0 && correctCount >= Math.ceil(questions.length / 2);
+            const earnedXp = correctCount * 10;
+
+            if (passed) {
+                document.getElementById('result-icon').innerText = '🏆';
+                document.getElementById('result-title').innerText = 'Ajoyib natija!';
+                document.getElementById('result-desc').innerText = `Siz ${questions.length} ta savoldan ${correctCount} tasini topdingiz va +${earnedXp} XP oldingiz! Keyingi mavzu ochildi.`;
+            } else {
+                document.getElementById('result-icon').innerText = '💔';
+                document.getElementById('result-title').innerText = 'Jonlar tugadi yoki ball yetmadi';
+                document.getElementById('result-desc').innerText = `Keyingi mavzuni ochish uchun kamida yarmidan ko'p savolga to'g'ri javob bering.`;
+            }
+
+            fetch('/api/complete_quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, level, xp: earnedXp, hearts, passed })
+            });
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>

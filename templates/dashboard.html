@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusAcademy - Fanlar Xaritasi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-body">
+
+   <header class="navbar">
+        <div class="nav-brand">
+            <span>⚡</span> <strong>NexusAcademy</strong>
+        </div>
+        <div class="nav-links">
+            <a href="/dashboard" class="nav-link active">Fanlar</a>
+            <a href="/leaderboard" class="nav-link">Reyting</a>
+            <a href="/profile" class="nav-link">Profil</a>
+        </div>
+        <div class="nav-stats">
+            <div class="stat-badge">🔥 <span>{{ user.streak }}</span></div>
+            <div class="stat-badge">💎 <span>{{ user.xp }} XP</span></div>
+            <a href="/logout" class="logout-btn">Chiqish</a>
+        </div>
+    </header>   
+    <main class="main-container">
+        <div class="welcome-banner">
+            <h2>Salom, {{ user.username }}! 👋</h2>
+            <p>Fanni tanlang va bosqichma-bosqich mavzular qulfini oching.</p>
+        </div>
+
+        <!-- Fanlarni tanlash tugmalari -->
+        <div class="subject-tabs">
+            {% for sub_id, sub in curriculum.items() %}
+            <button class="sub-tab {% if loop.first %}active{% endif %}" onclick="selectSubject('{{ sub_id }}', this)">
+                <span>{{ sub.icon }}</span> {{ sub.name }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Har bir fan uchun mavzular xaritasi (Skill Tree) -->
+        {% for sub_id, sub in curriculum.items() %}
+        <div class="topics-map {% if not loop.first %}hidden{% endif %}" id="map-{{ sub_id }}">
+            <div class="map-header">
+                <h3>{{ sub.icon }} {{ sub.name }} — O‘quv yo‘li</h3>
+                <span>Ochilgan daraja: {{ unlocked[sub_id] }} / {{ sub.topics|length }}</span>
+            </div>
+
+            <div class="nodes-container">
+                {% for topic in sub.topics %}
+                    {% set is_unlocked = topic.level <= unlocked[sub_id] %}
+                    {% set is_completed = topic.level < unlocked[sub_id] %}
+                    
+                    <div class="topic-node {{ 'unlocked' if is_unlocked else 'locked' }} {{ 'completed' if is_completed else '' }}"
+                         onclick="{% if is_unlocked %}window.location.href='/quiz/{{ sub_id }}/{{ topic.level }}'{% else %}alert('Avvalgi mavzuni yakunlang!'){% endif %}">
+                        <div class="node-circle">
+                            {% if is_completed %}✅{% elif is_unlocked %}▶{% else %}🔒{% endif %}
+                        </div>
+                        <div class="node-details">
+                            <h4>{{ topic.title }}</h4>
+                            <p>{{ topic.questions|length }} ta savol • +30 XP</p>
+                        </div>
+                        <div class="node-action">
+                            {% if is_completed %}Qayta yechish{% elif is_unlocked %}Boshlash{% else %}Qulflangan{% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </main>
+
+    <script>
+        function selectSubject(subId, btn) {
+            document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.topics-map').forEach(m => m.classList.add('hidden'));
+            document.getElementById('map-' + subId).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

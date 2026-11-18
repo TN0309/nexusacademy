@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - NexusAcademy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-body">
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <span>⚡</span> <strong>NexusAcademy</strong>
+        </div>
+        <div class="nav-links">
+            <a href="/dashboard" class="nav-link">Fanlar</a>
+            <a href="/leaderboard" class="nav-link">Reyting</a>
+            <a href="/profile" class="nav-link active">Profil</a>
+        </div>
+        <div class="nav-stats">
+            <div class="stat-badge">🔥 <span>{{ user.streak }}</span></div>
+            <div class="stat-badge">💎 <span>{{ user.xp }} XP</span></div>
+            <a href="/logout" class="logout-btn">Chiqish</a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="profile-header-card">
+            <div class="profile-avatar">👤</div>
+            <h2>{{ user.username }}</h2>
+            <p class="join-date">NexusAcademy faol o'quvchisi</p>
+        </div>
+
+        <div class="stats-grid-profile">
+            <div class="stat-box">
+                <span class="stat-icon">💎</span>
+                <h3>{{ user.xp }}</h3>
+                <p>Umumiy XP Ball</p>
+            </div>
+            <div class="stat-box">
+                <span class="stat-icon">🔥</span>
+                <h3>{{ user.streak }}</h3>
+                <p>Kunlik Seriya</p>
+            </div>
+            <div class="stat-box">
+                <span class="stat-icon">❤️</span>
+                <h3>{{ user.hearts }}</h3>
+                <p>Jonlar</p>
+            </div>
+            <div class="stat-box">
+                <span class="stat-icon">📚</span>
+                <h3>{{ user.completed_topics }}</h3>
+                <p>Tugatgan mavzular</p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

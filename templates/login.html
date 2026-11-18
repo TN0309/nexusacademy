@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirish - Duolingo Test Platforma</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth-body">
+
+    <div class="auth-card">
+      <div class="logo-area">
+            <span class="owl-icon">⚡</span>
+            <h1>NexusAcademy</h1>
+            <p>Bilim va intellektual test platformasi</p>
+        </div>
+
+        <!-- Xatolik yoki muvaffaqiyat xabarlari -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Tab tugmalari (Kirish / Ro'yxatdan o'tish) -->
+        <div class="auth-tabs">
+            <button type="button" class="tab-btn active" onclick="switchTab('login')">KIRISH</button>
+            <button type="button" class="tab-btn" onclick="switchTab('register')">RO‘YXATDAN O‘TISH</button>
+        </div>
+
+        <!-- Forma -->
+        <form method="POST" action="/">
+            <input type="hidden" name="action" id="form-action" value="login">
+            
+            <div class="input-group">
+                <input type="text" name="username" placeholder="Foydalanuvchi nomi (Login)" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" name="password" placeholder="Parol" required>
+            </div>
+
+            <button type="submit" class="duo-btn green-btn" id="submit-btn">TIZIMGA KIRISH</button>
+        </form>
+    </div>
+
+    <script>
+        function switchTab(type) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const actionInput = document.getElementById('form-action');
+            const submitBtn = document.getElementById('submit-btn');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            if (type === 'login') {
+                tabs[0].classList.add('active');
+                actionInput.value = 'login';
+                submitBtn.innerText = 'TIZIMGA KIRISH';
+            } else {
+                tabs[1].classList.add('active');
+                actionInput.value = 'register';
+                submitBtn.innerText = 'AKKAUNT YARATISH';
+            }
+        }
+    </script>
+</body>
+</html>

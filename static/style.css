@@ -1,0 +1,706 @@
+/* --- GLOBAL STYLES & RESET --- */
+
+*{
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body.auth-body {
+background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.75)),
+url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+background-size: cover;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+padding: 15px;
+}
+
+.auth-card {
+background: rgba(255, 255, 255, 0.92);
+backdrop-filter: blur(12px);
+width: 100%;
+max-width: 420px;
+padding: 35px;
+border-radius: 24px;
+box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+text-align: center;
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.owl-icon {
+font-size: 45px;
+display: block;
+margin-bottom: 12px;
+background: #0f172a;
+color: #ffffff;
+width: 80px;
+height: 80px;
+line-height: 80px;
+margin-left: auto;
+margin-right: auto;
+border-radius: 20px;
+box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+}
+
+.logo-area h1 {
+color: #0f172a;
+font-size: 28px;
+font-weight: 800;
+margin-bottom: 5px;
+letter-spacing: -0.5px;
+}
+
+.logo-area p {
+color: #64748b;
+font-size: 15px;
+margin-bottom: 25px;
+}
+
+/* Tab tugmalari */
+.auth-tabs {
+display: flex;
+border-bottom: 2px solid #e2e8f0;
+margin-bottom: 25px;
+}
+
+.tab-btn {
+flex: 1;
+background: none;
+border: none;
+padding: 12px;
+font-weight: bold;
+color: #94a3b8;
+cursor: pointer;
+font-size: 14px;
+border-bottom: 3px solid transparent;
+transition: all 0.2s;
+}
+
+.tab-btn.active {
+color: #0f172a;
+border-bottom-color: #0f172a;
+}
+
+/* Input maydonlari */
+.input-group {
+margin-bottom: 18px;
+}
+
+.input-group input {
+width: 100%;
+padding: 14px 16px;
+background-color: #f8fafc;
+border: 2px solid #e2e8f0;
+border-radius: 12px;
+font-size: 15px;
+outline: none;
+transition: all 0.2s;
+color: #0f172a;
+}
+
+.input-group input:focus {
+border-color: #0f172a;
+background-color: #ffffff;
+box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
+}
+
+/* Asosiy 3D tugma */
+.duo-btn {
+width: 100%;
+padding: 15px;
+border: none;
+border-radius: 14px;
+font-size: 16px;
+font-weight: bold;
+color: white;
+cursor: pointer;
+text-transform: uppercase;
+letter-spacing: 0.8px;
+transition: transform 0.1s, background-color 0.2s;
+margin-top: 10px;
+}
+
+.green-btn {
+background-color: #0f172a;
+box-shadow: 0 5px 0 #020617;
+}
+
+.green-btn:hover {
+background-color: #1e293b;
+}
+
+.green-btn:active {
+transform: translateY(4px);
+box-shadow: 0 1px 0 #020617;
+}
+
+/* Xabarlar */
+.alert {
+padding: 12px;
+border-radius: 10px;
+margin-bottom: 20px;
+font-size: 14px;
+font-weight: bold;
+}
+
+.alert.error {
+background-color: #fee2e2;
+color: #991b1b;
+border: 2px solid #f87171;
+}
+
+.alert.success {
+background-color: #dcfce7;
+color: #166534;
+border: 2px solid #4ade80;
+}
+
+/* --- DASHBOARD STILLARI --- */
+body.dashboard-body {
+background-color: #f8fafc;
+min-height: 100vh;
+color: #0f172a;
+display: flex;
+flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+background: #ffffff;
+padding: 15px 30px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+border-bottom: 1px solid #e2e8f0;
+box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+width: 100%;
+flex-wrap: wrap;
+gap: 15px;
+}
+
+.nav-brand {
+font-size: 20px;
+font-weight: 800;
+color: #0f172a;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.nav-links {
+display: flex;
+gap: 20px;
+align-items: center;
+}
+
+.nav-link {
+text-decoration: none;
+color: #64748b;
+font-weight: 700;
+font-size: 15px;
+transition: color 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+color: #0f172a;
+}
+
+.nav-stats {
+display: flex;
+align-items: center;
+gap: 12px;
+flex-wrap: wrap;
+}
+
+.stat-badge {
+background: #f1f5f9;
+padding: 8px 12px;
+border-radius: 10px;
+font-weight: bold;
+font-size: 14px;
+}
+
+.logout-btn {
+background: #fee2e2;
+color: #991b1b;
+padding: 8px 14px;
+border-radius: 10px;
+text-decoration: none;
+font-weight: bold;
+font-size: 14px;
+transition: background 0.2s;
+}
+
+.logout-btn:hover {
+background: #fca5a5;
+}
+
+/* Asosiy kontent */
+.main-container {
+max-width: 900px;
+width: 100%;
+margin: 30px auto;
+padding: 0 20px;
+flex: 1;
+}
+
+.welcome-banner {
+margin-bottom: 25px;
+}
+
+.welcome-banner h2 {
+font-size: 28px;
+font-weight: 800;
+margin-bottom: 5px;
+}
+
+.welcome-banner p {
+color: #64748b;
+font-size: 16px;
+}
+
+/* Mavzular xaritasi va Tablar */
+.hidden { display: none !important; }
+
+.subject-tabs {
+display: flex;
+gap: 10px;
+overflow-x: auto;
+padding-bottom: 10px;
+margin-bottom: 25px;
+scrollbar-width: thin;
+}
+
+.sub-tab {
+background: #ffffff;
+border: 2px solid #e2e8f0;
+padding: 12px 18px;
+border-radius: 14px;
+font-weight: 700;
+font-size: 15px;
+cursor: pointer;
+white-space: nowrap;
+transition: all 0.2s;
+color: #475569;
+flex-shrink: 0;
+}
+
+.sub-tab.active {
+background: #0f172a;
+color: #ffffff;
+border-color: #0f172a;
+}
+
+.topics-map {
+background: #ffffff;
+border-radius: 20px;
+padding: 25px;
+border: 1px solid #e2e8f0;
+}
+
+.map-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding-bottom: 18px;
+border-bottom: 2px solid #f1f5f9;
+margin-bottom: 20px;
+flex-wrap: wrap;
+gap: 10px;
+}
+
+.map-header span {
+background: #e0e7ff;
+color: #3730a3;
+padding: 6px 12px;
+border-radius: 10px;
+font-weight: 700;
+font-size: 13px;
+}
+
+.nodes-container {
+display: flex;
+flex-direction: column;
+gap: 14px;
+}
+
+.topic-node {
+display: flex;
+align-items: center;
+padding: 16px 20px;
+border-radius: 16px;
+border: 2px solid #e2e8f0;
+transition: all 0.2s;
+gap: 15px;
+}
+
+.topic-node.unlocked {
+background: #ffffff;
+cursor: pointer;
+border-color: #cbd5e1;
+}
+
+.topic-node.unlocked:hover {
+border-color: #0f172a;
+transform: translateX(4px);
+}
+
+.topic-node.completed {
+border-color: #22c55e;
+background: #f0fdf4;
+}
+
+.topic-node.locked {
+background: #f8fafc;
+opacity: 0.65;
+cursor: not-allowed;
+}
+
+.node-circle {
+width: 46px;
+height: 46px;
+border-radius: 50%;
+background: #0f172a;
+color: white;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+flex-shrink: 0;
+}
+
+.topic-node.locked .node-circle { background: #cbd5e1; }
+.topic-node.completed .node-circle { background: #22c55e; }
+
+.node-details { flex: 1; min-width: 0; }
+.node-details h4 { font-size: 16px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-details p { font-size: 13px; color: #64748b; }
+
+.node-action {
+font-size: 13px;
+font-weight: 700;
+padding: 6px 12px;
+border-radius: 8px;
+background: #f1f5f9;
+color: #0f172a;
+white-space: nowrap;
+}
+
+/* --- LEADERBOARD STILLARI --- */
+.leaderboard-card {
+background: #ffffff;
+border-radius: 20px;
+border: 1px solid #e2e8f0;
+overflow: hidden;
+}
+
+.leaderboard-item {
+display: flex;
+align-items: center;
+padding: 18px 25px;
+border-bottom: 1px solid #f1f5f9;
+gap: 15px;
+}
+
+.leaderboard-item.current-user {
+background: #f0fdf4;
+}
+
+.rank-number {
+font-size: 20px;
+font-weight: 800;
+width: 35px;
+color: #475569;
+flex-shrink: 0;
+}
+
+.user-info-lb {
+flex: 1;
+min-width: 0;
+}
+
+.user-info-lb h4 {
+font-size: 16px;
+font-weight: 700;
+color: #0f172a;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+.user-info-lb p {
+font-size: 13px;
+color: #64748b;
+}
+
+.user-xp-lb {
+font-weight: 800;
+font-size: 16px;
+color: #0f172a;
+white-space: nowrap;
+}
+
+/* --- PROFILE STILLARI --- */
+.profile-header-card {
+background: #ffffff;
+border-radius: 20px;
+padding: 30px;
+text-align: center;
+border: 1px solid #e2e8f0;
+margin-bottom: 25px;
+}
+
+.profile-avatar {
+font-size: 50px;
+background: #f1f5f9;
+width: 80px;
+height: 80px;
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 50%;
+margin: 0 auto 15px;
+border: 2px solid #e2e8f0;
+}
+
+.profile-header-card h2 {
+font-size: 24px;
+font-weight: 800;
+margin-bottom: 5px;
+}
+
+.join-date {
+color: #64748b;
+font-size: 14px;
+}
+
+.stats-grid-profile {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 15px;
+}
+
+.stat-box {
+background: #ffffff;
+padding: 20px;
+border-radius: 18px;
+border: 1px solid #e2e8f0;
+text-align: center;
+}
+
+.stat-icon {
+font-size: 26px;
+display: block;
+margin-bottom: 8px;
+}
+
+.stat-box h3 {
+font-size: 22px;
+font-weight: 800;
+color: #0f172a;
+margin-bottom: 4px;
+}
+
+.stat-box p {
+color: #64748b;
+font-size: 13px;
+}
+
+/* --- QUIZ STILLARI --- */
+body.quiz-body {
+background: #ffffff;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 20px;
+}
+
+.quiz-header {
+width: 100%;
+max-width: 700px;
+display: flex;
+align-items: center;
+gap: 15px;
+margin-bottom: 30px;
+}
+
+.close-quiz {
+text-decoration: none;
+font-size: 22px;
+color: #94a3b8;
+font-weight: bold;
+}
+
+.progress-track {
+flex: 1;
+height: 14px;
+background: #e2e8f0;
+border-radius: 10px;
+overflow: hidden;
+}
+
+.progress-fill {
+height: 100%;
+background: #0f172a;
+transition: width 0.3s ease;
+}
+
+.quiz-hearts {
+font-weight: 800;
+font-size: 18px;
+color: #ef4444;
+}
+
+.quiz-container {
+width: 100%;
+max-width: 600px;
+}
+
+.topic-badge {
+display: inline-block;
+background: #f1f5f9;
+color: #475569;
+padding: 6px 12px;
+border-radius: 8px;
+font-size: 13px;
+font-weight: 700;
+margin-bottom: 12px;
+}
+
+.question-text {
+font-size: 22px;
+font-weight: 800;
+color: #0f172a;
+margin-bottom: 20px;
+}
+
+.options-grid {
+display: flex;
+flex-direction: column;
+gap: 12px;
+margin-bottom: 25px;
+}
+
+.option-card {
+padding: 15px 18px;
+border: 2px solid #e2e8f0;
+border-radius: 14px;
+font-size: 15px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.15s;
+}
+
+.option-card:hover { background: #f8fafc; border-color: #94a3b8; }
+.option-card.selected { border-color: #0f172a; background: #f1f5f9; }
+.option-card.correct { border-color: #22c55e; background: #dcfce7; color: #166534; }
+.option-card.wrong { border-color: #ef4444; background: #fee2e2; color: #991b1b; }
+
+.feedback-banner {
+padding: 14px;
+border-radius: 12px;
+font-weight: 700;
+margin-bottom: 15px;
+}
+.feedback-banner.success { background: #dcfce7; color: #166534; }
+.feedback-banner.error { background: #fee2e2; color: #991b1b; }
+
+#action-btn:disabled {
+background: #cbd5e1;
+box-shadow: none;
+cursor: not-allowed;
+}
+
+/* --- TO'LIQ RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 768px) {
+.navbar {
+flex-direction: column;
+align-items: stretch;
+padding: 15px;
+gap: 12px;
+}
+
+.nav-links {
+    justify-content: space-around;
+    width: 100%;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 8px 0;
+}
+
+.nav-stats {
+    justify-content: space-between;
+    width: 100%;
+}
+
+.main-container {
+    margin: 15px auto;
+    padding: 0 10px;
+}
+
+.welcome-banner h2 {
+    font-size: 22px;
+}
+
+.welcome-banner p {
+    font-size: 14px;
+}
+
+.topics-map {
+    padding: 15px;
+}
+
+.topic-node {
+    padding: 12px 14px;
+}
+
+.node-circle {
+    width: 38px;
+    height: 38px;
+    font-size: 15px;
+}
+
+.node-details h4 {
+    font-size: 14px;
+}
+
+.node-details p {
+    font-size: 12px;
+}
+
+.node-action {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.stats-grid-profile {
+    grid-template-columns: 1fr;
+}
+
+
+}
+
+@media (max-width: 480px) {
+.auth-card {
+padding: 25px 18px;
+}
+
+.logo-area h1 {
+    font-size: 24px;
+}
+
+.question-text {
+    font-size: 18px;
+}
+
+.option-card {
+    padding: 12px 14px;
+    font-size: 14px;
+}
+
+
+}

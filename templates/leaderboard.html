@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reyting - NexusAcademy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-body">
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <span>⚡</span> <strong>NexusAcademy</strong>
+        </div>
+        <div class="nav-links">
+             <a href="/dashboard" class="nav-link">Fanlar</a>
+             <a href="/leaderboard" class="nav-link active">Reyting</a>
+             <a href="/profile" class="nav-link">Profil</a>
+        </div>
+        <div class="nav-stats">
+            <div class="stat-badge">🔥 <span>{{ user.streak }}</span></div>
+            <div class="stat-badge">💎 <span>{{ user.xp }} XP</span></div>
+            <a href="/logout" class="logout-btn">Chiqish</a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="welcome-banner">
+            <h2>🏆 Eng yaxshilar reytingi</h2>
+            <p>Platformadagi eng faol va ko‘p XP to‘plagan o‘quvchilar.</p>
+        </div>
+
+        <div class="leaderboard-card">
+            {% for row in top_users %}
+            <div class="leaderboard-item {% if row[0] == user.username %}current-user{% endif %}">
+                <div class="rank-number">
+                    {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                </div>
+                <div class="user-info-lb">
+                    <h4>{{ row[0] }}</h4>
+                    <p>🔥 Streak: {{ row[2] }} kun</p>
+                </div>
+                <div class="user-xp-lb">
+                    💎 {{ row[1] }} XP
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>
