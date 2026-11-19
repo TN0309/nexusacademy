@@ -1,38 +1,116 @@
-import sqlite3
 import os
+import random
+import smtplib
+import sqlite3
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    import psycopg2
+
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
 app = Flask(__name__)
-app.secret_key = 'duolingo_super_secret_key'
+app.secret_key = os.environ.get('SECRET_KEY', 'duolingo_super_secret_key')
+
+
+def get_db():
+    if DATABASE_URL:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn, True
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, 'database.db')
+    conn = sqlite3.connect(db_path)
+    return conn, False
+
 
 def init_db():
-    conn = sqlite3.connect('database.db')
+    conn, is_pg = get_db()
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            xp INTEGER DEFAULT 0,
-            hearts INTEGER DEFAULT 5,
-            streak INTEGER DEFAULT 1
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS progress (
-            user_id INTEGER,
-            subject TEXT,
-            unlocked_level INTEGER DEFAULT 1,
-            PRIMARY KEY (user_id, subject)
-        )
-    ''')
+
+    if is_pg:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                age INTEGER,
+                xp INTEGER DEFAULT 0,
+                hearts INTEGER DEFAULT 5,
+                streak INTEGER DEFAULT 1
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS progress (
+                user_id INTEGER,
+                subject TEXT,
+                unlocked_level INTEGER DEFAULT 1,
+                PRIMARY KEY (user_id, subject)
+            )
+        ''')
+    else:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                age INTEGER,
+                xp INTEGER DEFAULT 0,
+                hearts INTEGER DEFAULT 5,
+                streak INTEGER DEFAULT 1
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS progress (
+                user_id INTEGER,
+                subject TEXT,
+                unlocked_level INTEGER DEFAULT 1,
+                PRIMARY KEY (user_id, subject)
+            )
+        ''')
+
     conn.commit()
+    c.close()
     conn.close()
+
 
 init_db()
 
-# 4 ta fan va har birida 40 tadan mavzu (Jami 160 ta mavzu va 1600 ta test imkoniyati / 400 ta asosiy testlar)
+
+def send_2fa_code(to_email: str, code: str) -> bool:
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        return False
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = MAIL_USERNAME
+        msg['To'] = to_email
+        msg['Subject'] = 'NexusAcademy - Tasdiqlash kodi (2FA)'
+
+        body = (
+            "Assalomu alaykum!\n\n"
+            "NexusAcademy platformasiga kirish / ro'yxatdan o'tish uchun "
+            f"6 xonali tasdiqlash kodingiz:\n\n{code}\n\n"
+            "Agar bu so'rovni siz yubormagan bo'lsangiz, ushbu xabarga e'tibor bermang."
+        )
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception:
+        return False
+
+
+# 4 ta fan va har birida 40 tadan mavzu
 CURRICULUM = {
     'python': {
         'name': 'Python Dasturlash',
@@ -40,13 +118,13 @@ CURRICULUM = {
         'topics': [
             {'level': i, 'title': f"{i}-mavzu: Python asoslari va amaliyot {i}", 'questions': [
                 {'q': f"Python'da {i}-mavzuga oid asosiy tushuncha qaysi?", 'options': ['Operator', 'Funksiya', 'O‘zgaruvchi', 'Barchasi to‘g‘ri'], 'answer': 3},
-                {'q': f"Kodni bajarish tartibi nimaga asoslanadi {i}?", 'options': ['Ketma-ketlik', tasodif := 'Tasodif', 'Xatolik', 'Cheksizlik'], 'answer': 0},
+                {'q': f"Kodni bajarish tartibi nimaga asoslanadi {i}?", 'options': ['Ketma-ketlik', 'Tasodif', 'Xatolik', 'Cheksizlik'], 'answer': 0},
                 {'q': f"Qaysi biri ma'lumot turi emas {i}?", 'options': ['int', 'str', 'loop', 'float'], 'answer': 2},
                 {'q': f"print() funksiyasi vazifasi nima {i}?", 'options': ['O‘qish', 'Ekranga chiqarish', 'O‘chirish', 'Saqlash'], 'answer': 1},
                 {'q': f"Matnli ma'lumot qaysi turga kiradi {i}?", 'options': ['str', 'int', 'bool', 'list'], 'answer': 0},
                 {'q': f"Mantiqiy qiymat qaysi {i}?", 'options': ['True/False', '1/0', 'Yes/No', 'A va B'], 'answer': 3},
-                {'q': f"arifmetik amalni belgilang {i}?", 'options': ['+', '-', '*', 'Barchasi'], 'answer': 3},
-                {'q': f"kommentariya qanday belgilanadi {i}?", 'options': ['#', '//', '/*', '<!--'], 'answer': 0},
+                {'q': f"Arifmetik amalni belgilang {i}?", 'options': ['+', '-', '*', 'Barchasi'], 'answer': 3},
+                {'q': f"Kommentariya qanday belgilanadi {i}?", 'options': ['#', '//', '/*', '<!--'], 'answer': 0},
                 {'q': f"input() funksiyasi nima qiladi {i}?", 'options': ['Ma’lumot kiritadi', 'Chiqaradi', 'Hisoblaydi', 'O‘chiradi'], 'answer': 0},
                 {'q': f"int('125') natijasi nima {i}?", 'options': ['125 (son)', '"125" (matn)', 'Xato', 'True'], 'answer': 0}
             ]} for i in range(1, 41)
@@ -108,6 +186,7 @@ CURRICULUM = {
     }
 }
 
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
@@ -115,158 +194,104 @@ def login():
 
     if request.method == 'POST':
         action = request.form.get('action')
-        username = request.form.get('username').strip()
-        password = request.form.get('password')
+        email = (request.form.get('email') or '').strip().lower()
+        phone = (request.form.get('phone') or '').strip()
 
-        conn = sqlite3.connect('database.db')
+        if not email or not phone:
+            flash("Gmail va telefon raqamingizni kiriting!", "error")
+            return render_template('login.html', step='auth')
+
+        conn, is_pg = get_db()
         c = conn.cursor()
+        ph = '%s' if is_pg else '?'
 
-        if action == 'register':
-            hashed_pw = generate_password_hash(password)
-            try:
-                c.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed_pw))
-                conn.commit()
-                flash("Muvaffaqiyatli ro'yxatdan o'tdingiz! Endi tizimga kiring.", "success")
-            except sqlite3.IntegrityError:
-                flash("Bu login band! Boshqa nom tanlang.", "error")
-        elif action == 'login':
-            c.execute('SELECT id, username, password FROM users WHERE username = ?', (username,))
-            user = c.fetchone()
-            if user and check_password_hash(user[2], password):
-                session['user_id'] = user[0]
-                session['username'] = user[1]
-                conn.close()
-                return redirect(url_for('dashboard'))
-            else:
-                flash("Login yoki parol noto'g'ri!", "error")
+        c.execute(f'SELECT id, username, email, phone FROM users WHERE email = {ph}', (email,))
+        existing_user = c.fetchone()
+        c.close()
         conn.close()
 
-    return render_template('login.html')
+        if action == 'register':
+            if existing_user:
+                flash("Bu Gmail allaqachon ro'yxatdan o'tgan! Kirish bo'limidan kiring.", "error")
+                return render_template('login.html', step='auth')
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
+            code = f"{random.randint(100000, 999999)}"
+            session['pending_2fa'] = {
+                'mode': 'register',
+                'email': email,
+                'phone': phone,
+                'code': code
+            }
+            sent = send_2fa_code(email, code)
+            if sent:
+                flash(f"6 xonali tasdiqlash kodi {email} manziliga yuborildi!", "success")
+            else:
+                flash("Gmail yuborish sozlamalari (MAIL_USERNAME / MAIL_PASSWORD) hali kiritilmagan.", "error")
+            return render_template('login.html', step='verify', email=email)
+
+        elif action == 'login':
+            if not existing_user:
+                flash("Bu Gmail topilmadi! Avval ro'yxatdan o'ting.", "error")
+                return render_template('login.html', step='auth')
+
+            if existing_user[3] and existing_user[3] != phone:
+                flash("Bu Gmail boshqa telefon raqam bilan bog'langan!", "error")
+                return render_template('login.html', step='auth')
+
+            code = f"{random.randint(100000, 999999)}"
+            session['pending_2fa'] = {
+                'mode': 'login',
+                'user_id': existing_user[0],
+                'username': existing_user[1],
+                'email': existing_user[2],
+                'phone': phone,
+                'code': code
+            }
+            sent = send_2fa_code(email, code)
+            if sent:
+                flash(f"6 xonali tasdiqlash kodi {email} manziliga yuborildi!", "success")
+            else:
+                flash("Gmail yuborish sozlamalari (MAIL_USERNAME / MAIL_PASSWORD) hali kiritilmagan.", "error")
+            return render_template('login.html', step='verify', email=email)
+
+    return render_template('login.html', step='auth')
+
+
+@app.route('/verify-code', methods=['POST'])
+def verify_code():
+    pending = session.get('pending_2fa')
+    if not pending:
+        flash("Tasdiqlash muddati tugagan. Qaytadan urinib ko'ring.", "error")
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect('database.db')
+    entered_code = (request.form.get('code') or '').strip()
+    if entered_code != pending.get('code'):
+        flash("Tasdiqlash kodi noto'g'ri!", "error")
+        return render_template('login.html', step='verify', email=pending.get('email'))
+
+    conn, is_pg = get_db()
     c = conn.cursor()
-    c.execute('SELECT xp, hearts, streak FROM users WHERE id = ?', (session['user_id'],))
-    user_data = c.fetchone()
-    
-    unlocked = {}
-    for sub_id in CURRICULUM.keys():
-        c.execute('SELECT unlocked_level FROM progress WHERE user_id = ? AND subject = ?', (session['user_id'], sub_id))
-        row = c.fetchone()
-        if not row:
-            c.execute('INSERT INTO progress (user_id, subject, unlocked_level) VALUES (?, ?, 1)', (session['user_id'], sub_id))
-            unlocked[sub_id] = 1
+    ph = '%s' if is_pg else '?'
+
+    if pending['mode'] == 'register':
+        c.execute(f'SELECT id FROM users WHERE email = {ph}', (pending['email'],))
+        if c.fetchone():
+            c.close()
+            conn.close()
+            session.pop('pending_2fa', None)
+            flash("Bu Gmail allaqachon ro'yxatdan o'tgan!", "error")
+            return redirect(url_for('login'))
+
+        default_username = pending['email'].split('@')[0]
+        if is_pg:
+            c.execute(
+                f'INSERT INTO users (username, email, phone) VALUES ({ph}, {ph}, {ph}) RETURNING id',
+                (default_username, pending['email'], pending['phone'])
+            )
+            new_id = c.fetchone()[0]
         else:
-            unlocked[sub_id] = row[0]
-    conn.commit()
-    conn.close()
-
-    user = {'username': session['username'], 'xp': user_data[0], 'hearts': user_data[1], 'streak': user_data[2]}
-    return render_template('dashboard.html', user=user, curriculum=CURRICULUM, unlocked=unlocked)
-
-@app.route('/quiz/<subject>/<int:level>')
-def quiz(subject, level):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    if subject not in CURRICULUM:
-        return redirect(url_for('dashboard'))
-
-    topics = CURRICULUM[subject]['topics']
-    topic = next((t for t in topics if t['level'] == level), None)
-    if not topic:
-        return redirect(url_for('dashboard'))
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute('SELECT hearts FROM users WHERE id = ?', (session['user_id'],))
-    hearts = c.fetchone()[0]
-    conn.close()
-
-    if hearts <= 0:
-        hearts = 5
-
-    return render_template('quiz.html', subject=subject, subject_name=CURRICULUM[subject]['name'], topic=topic, hearts=hearts)
-
-@app.route('/api/complete_quiz', methods=['POST'])
-def complete_quiz():
-    if 'user_id' not in session:
-        return jsonify({'status': 'error'}), 401
-
-    data = request.json
-    subject = data.get('subject')
-    level = int(data.get('level'))
-    earned_xp = int(data.get('xp', 0))
-    hearts_left = int(data.get('hearts', 5))
-    passed = data.get('passed', False)
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute('UPDATE users SET xp = xp + ?, hearts = ? WHERE id = ?', (earned_xp, max(1, hearts_left), session['user_id']))
-    
-    if passed:
-        c.execute('SELECT unlocked_level FROM progress WHERE user_id = ? AND subject = ?', (session['user_id'], subject))
-        curr_level = c.fetchone()[0]
-        if level >= curr_level:
-            c.execute('UPDATE progress SET unlocked_level = ? WHERE user_id = ? AND subject = ?', (level + 1, session['user_id'], subject))
-
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok'})
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-# 4-OYNA: Reyting jadvali (Leaderboard)
-@app.route('/leaderboard')
-def leaderboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute('SELECT username, xp, streak FROM users ORDER BY xp DESC LIMIT 10')
-    top_users = c.fetchall()
-
-    c.execute('SELECT username, xp, hearts, streak FROM users WHERE id = ?', (session['user_id'],))
-    user_data = c.fetchone()
-    conn.close()
-
-    user = {'username': user_data[0], 'xp': user_data[1], 'hearts': user_data[2], 'streak': user_data[3]}
-    return render_template('leaderboard.html', user=user, top_users=top_users)
-
-# 5-OYNA: Shaxsiy profil (Profile)
-@app.route('/profile')
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute('SELECT username, xp, hearts, streak FROM users WHERE id = ?', (session['user_id'],))
-    user_data = c.fetchone()
-    
-    c.execute('SELECT SUM(unlocked_level - 1) FROM progress WHERE user_id = ?', (session['user_id'],))
-    completed_row = c.fetchone()
-    completed_topics = completed_row[0] if completed_row and completed_row[0] else 0
-    conn.close()
-
-    user = {
-        'username': user_data[0],
-        'xp': user_data[1],
-        'hearts': user_data[2],
-        'streak': user_data[3],
-        'completed_topics': completed_topics
-    }
-    return render_template('profile.html', user=user)
-    import os
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+            c.execute(
+                f'INSERT INTO users (username, email, phone) VALUES ({ph}, {ph}, {ph})',
+                (default_username, pending['email'], pending['phone'])
+            )
+            new_id = c.lastrowid
