@@ -1,3 +1,4 @@
+
 import os
 import random
 import smtplib
@@ -7,6 +8,8 @@ from email.mime.text import MIMEText
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
 if DATABASE_URL:
     import psycopg2
@@ -20,7 +23,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'duolingo_super_secret_key')
 
 def get_db():
     if DATABASE_URL:
-        conn = psycopg2.connect(DATABASE_URL)
+        ssl_arg = {} if 'sslmode=' in DATABASE_URL else {'sslmode': 'require'}
+        conn = psycopg2.connect(DATABASE_URL, **ssl_arg)
         return conn, True
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(base_dir, 'database.db')
@@ -29,55 +33,58 @@ def get_db():
 
 
 def init_db():
-    conn, is_pg = get_db()
-    c = conn.cursor()
+    try:
+        conn, is_pg = get_db()
+        c = conn.cursor()
 
-    if is_pg:
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username TEXT,
-                email TEXT UNIQUE NOT NULL,
-                phone TEXT,
-                age INTEGER,
-                xp INTEGER DEFAULT 0,
-                hearts INTEGER DEFAULT 5,
-                streak INTEGER DEFAULT 1
-            )
-        ''')
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS progress (
-                user_id INTEGER,
-                subject TEXT,
-                unlocked_level INTEGER DEFAULT 1,
-                PRIMARY KEY (user_id, subject)
-            )
-        ''')
-    else:
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT,
-                email TEXT UNIQUE NOT NULL,
-                phone TEXT,
-                age INTEGER,
-                xp INTEGER DEFAULT 0,
-                hearts INTEGER DEFAULT 5,
-                streak INTEGER DEFAULT 1
-            )
-        ''')
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS progress (
-                user_id INTEGER,
-                subject TEXT,
-                unlocked_level INTEGER DEFAULT 1,
-                PRIMARY KEY (user_id, subject)
-            )
-        ''')
+        if is_pg:
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username TEXT,
+                    email TEXT UNIQUE NOT NULL,
+                    phone TEXT,
+                    age INTEGER,
+                    xp INTEGER DEFAULT 0,
+                    hearts INTEGER DEFAULT 5,
+                    streak INTEGER DEFAULT 1
+                )
+            ''')
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS progress (
+                    user_id INTEGER,
+                    subject TEXT,
+                    unlocked_level INTEGER DEFAULT 1,
+                    PRIMARY KEY (user_id, subject)
+                )
+            ''')
+        else:
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT,
+                    email TEXT UNIQUE NOT NULL,
+                    phone TEXT,
+                    age INTEGER,
+                    xp INTEGER DEFAULT 0,
+                    hearts INTEGER DEFAULT 5,
+                    streak INTEGER DEFAULT 1
+                )
+            ''')
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS progress (
+                    user_id INTEGER,
+                    subject TEXT,
+                    unlocked_level INTEGER DEFAULT 1,
+                    PRIMARY KEY (user_id, subject)
+                )
+            ''')
 
-    conn.commit()
-    c.close()
-    conn.close()
+        conn.commit()
+        c.close()
+        conn.close()
+    except Exception as e:
+        print("init_db xatosi:", e)
 
 
 init_db()
@@ -100,17 +107,17 @@ def send_2fa_code(to_email: str, code: str) -> bool:
         )
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
         server.starttls()
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
         return True
-    except Exception:
+    except Exception as e:
+        print("Mail yuborish xatosi:", e)
         return False
 
 
-# 4 ta fan va har birida 40 tadan mavzu
 CURRICULUM = {
     'python': {
         'name': 'Python Dasturlash',
@@ -185,6 +192,25 @@ CURRICULUM = {
         ]
     }
 }
+
+
+def get_current_user():
+    uid = session.get('user_id')
+    if not uid:
+        return None
+    conn, is_pg = get_db()
+    c = conn.cursor()
+    ph = '%s' if is_pg else '?'
+    c.execute(f'SELECT id, username, email, phone, age, xp, hearts, streak FROM users WHERE id = {ph}', (uid,))
+    row = c.fetchone()
+    c.close()
+    conn.close()
+    if not row:
+        return None
+    return {
+        'id': row[0], 'username': row[1], 'email': row[2], 'phone': row[3],
+        'age': row[4], 'xp': row[5], 'hearts': row[6], 'streak': row[7]
+    }
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -289,9 +315,114 @@ def verify_code():
                 (default_username, pending['email'], pending['phone'])
             )
             new_id = c.fetchone()[0]
+            for subj in CURRICULUM:
+                c.execute(
+                    f'INSERT INTO progress (user_id, subject, unlocked_level) VALUES ({ph}, {ph}, 1) ON CONFLICT DO NOTHING',
+                    (new_id, subj)
+                )
         else:
             c.execute(
                 f'INSERT INTO users (username, email, phone) VALUES ({ph}, {ph}, {ph})',
                 (default_username, pending['email'], pending['phone'])
             )
             new_id = c.lastrowid
+            for subj in CURRICULUM:
+                c.execute(
+                    f'INSERT OR IGNORE INTO progress (user_id, subject, unlocked_level) VALUES ({ph}, {ph}, 1)',
+                    (new_id, subj)
+                )
+
+        conn.commit()
+        c.close()
+        conn.close()
+        session.pop('pending_2fa', None)
+        session['user_id'] = new_id
+        return redirect(url_for('dashboard'))
+
+    user_id = pending.get('user_id')
+    conn.commit()
+    c.close()
+    conn.close()
+    session.pop('pending_2fa', None)
+    session['user_id'] = user_id
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/dashboard')
+def dashboard():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+
+    subject = request.args.get('subject', 'python')
+    if subject not in CURRICULUM:
+        subject = 'python'
+
+    conn, is_pg = get_db()
+    c = conn.cursor()
+    ph = '%s' if is_pg else '?'
+    c.execute(f'SELECT unlocked_level FROM progress WHERE user_id = {ph} AND subject = {ph}', (user['id'], subject))
+    row = c.fetchone()
+    c.close()
+    conn.close()
+
+    unlocked_level = row[0] if row else 1
+    return render_template(
+        'dashboard.html',
+        user=user,
+        curriculum=CURRICULUM,
+        current_subject=subject,
+        unlocked_level=unlocked_level
+    )
+
+
+@app.route('/quiz/<subject>/<int:level>')
+def quiz(subject, level):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    if subject not in CURRICULUM:
+        return redirect(url_for('dashboard'))
+
+    topics = CURRICULUM[subject]['topics']
+    topic = next((t for t in topics if t['level'] == level), None)
+    if not topic:
+        return redirect(url_for('dashboard', subject=subject))
+
+    return render_template('quiz.html', user=user, subject=subject, topic=topic)
+
+
+@app.route('/leaderboard')
+def leaderboard():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+
+    conn, is_pg = get_db()
+    c = conn.cursor()
+    c.execute('SELECT id, username, xp, streak FROM users ORDER BY xp DESC, id ASC LIMIT 20')
+    rows = c.fetchall()
+    c.close()
+    conn.close()
+
+    leaders = [{'id': r[0], 'username': r[1], 'xp': r[2], 'streak': r[3]} for r in rows]
+    return render_template('leaderboard.html', user=user, leaders=leaders)
+
+
+@app.route('/profile')
+def profile():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('profile.html', user=user)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
